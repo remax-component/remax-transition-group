@@ -1,0 +1,47 @@
+{
+  "name": "@remax-component/transition-group",
+  "version": "0.0.1",
+  "description": "react-transition-group for Remax",
+  "main": "dist/index.js",
+  "author": "IronLu233",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "build": "gulp build",
+    "watch:component": "gulp watch",
+    "start": "run-p watch:*"
+  },
+  "devDependencies": {
+    "@types/react": "^16.9.34",
+    "@typescript-eslint/eslint-plugin": "^2.29.0",
+    "@typescript-eslint/parser": "^2.28.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.1",
+    "gulp": "^4.0.2",
+    "gulp-cli": "^2.2.0",
+    "gulp-copy": "^4.0.1",
+    "gulp-less": "^4.0.1",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "husky": "^4.2.5",
+    "lint-staged": "^10.1.4",
+    "npm-run-all": "^4.1.5",
+    "postcss": "^7.0.27",
+    "prettier": "^2.0.4",
+    "react": "^16.13.1",
+    "remax": "^2.0.0-alpha.4",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "clsx": "^1.1.0",
+    "react-use": "^14.1.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,less,md}": "prettier --write",
+    "*.{ts,tsx}": "eslint --cache --fix"
+  }
+}
