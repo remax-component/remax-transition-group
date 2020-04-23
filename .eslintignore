@@ -8,3 +8,5 @@ coverage
 example
 
 gulpfile.js
+test
+babel.config.js

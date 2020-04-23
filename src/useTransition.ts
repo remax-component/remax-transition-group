@@ -1,8 +1,7 @@
-import { useContext, useState, useRef } from "react";
-import { useNativeEffect } from "remax";
-import { usePrevious } from "react-use";
+import { useContext, useState, useRef, useEffect } from "react";
+import { usePrevious, useMount, useUpdateEffect } from "react-use";
 import TransitionGroupContext from "./TransitionGroupContext";
-import { TransitionStatus, Timeout } from "./types";
+import { TransitionStatus, Timeout, UseTransitionParams } from "./types";
 
 function getTimeouts(
   timeout: Timeout
@@ -18,8 +17,9 @@ function getTimeouts(
     exit = timeout.exit;
     enter = timeout.enter;
     exit = timeout.exit;
+    appear = timeout.appear ?? enter;
   } else {
-    exit = enter = exit = timeout;
+    appear = exit = enter = exit = timeout;
   }
 
   return {
@@ -29,42 +29,63 @@ function getTimeouts(
   };
 }
 
-export interface UseTransitionParams {
-  in?: boolean;
-  appear?: boolean;
-  enter?: boolean;
-  exit?: boolean;
-  timeout?: Timeout;
-  onEnter?: (isAppearing: boolean) => unknown;
-  onEntering?: (isAppearing: boolean) => unknown;
-  onEntered?: (isAppearing: boolean) => unknown;
-
-  onExit?: () => unknown;
-  onExiting?: () => unknown;
-  onExited?: () => unknown;
-
-  unmountOnExit?: boolean;
-  mountOnEnter?: boolean;
+interface CancelableCallback {
+  timeout?: number;
+  handler?: () => unknown;
 }
 
-export default function useTransition({
-  appear: propsAppear,
-  enter,
-  exit,
-  timeout = 0,
-  onEnter,
-  onEntering,
-  onEntered,
-  onExit,
-  onExited,
-  onExiting,
-  in: inStatus,
-  unmountOnExit,
-  mountOnEnter,
-}: UseTransitionParams): TransitionStatus {
+export default function useTransition(
+  props: UseTransitionParams
+): TransitionStatus {
+  const {
+    appear: propsAppear = false,
+    enter = true,
+    exit = true,
+    timeout = 0,
+    onEnter,
+    onEntering,
+    onEntered,
+    onExit,
+    onExited,
+    onExiting,
+    in: inStatus = false,
+    unmountOnExit = false,
+    mountOnEnter = false,
+  } = props;
+
   const parentGroup = useContext(TransitionGroupContext);
+  const transitionEndCallbacksRef = useRef({
+    onEnter,
+    onEntering,
+    onEntered,
+    onExit,
+    onExiting,
+    onExited,
+  });
   const appearStatusRef = useRef<TransitionStatus | null>(null);
-  const nextCallbackRef = useRef<(() => unknown) | null>(null);
+  const [nextCallback, setNextCallback] = useState<CancelableCallback | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (nextCallback === null) return;
+    const { timeout, handler } = nextCallback;
+    if (!handler) return;
+
+    const timerId = setTimeout(handler, timeout);
+    return (): void => {
+      clearTimeout(timerId);
+    };
+  }, [nextCallback]);
+
+  transitionEndCallbacksRef.current = {
+    onEnter,
+    onEntering,
+    onEntered,
+    onExit,
+    onExiting,
+    onExited,
+  };
 
   const [status, setStatus] = useState<TransitionStatus>(() => {
     let initialStatus: TransitionStatus;
@@ -86,73 +107,75 @@ export default function useTransition({
 
     return initialStatus;
   });
-
   const prevStatus = usePrevious(status);
 
   if (inStatus && prevStatus === TransitionStatus.UNMOUNTED) {
     setStatus(TransitionStatus.EXITED);
   }
 
-  const safeSetStatus = (
-    status: TransitionStatus,
-    callback: () => unknown
-  ): void => {
-    setStatus(status);
-    nextCallbackRef.current = callback;
-  };
-  // 用于执行`safeSetStatus`的回调
-  useNativeEffect(() => {
-    if (prevStatus === undefined) return;
-
-    nextCallbackRef.current?.();
-  }, [status, prevStatus]);
-
   const onTransitionEnd = (timeout = 0, callback: () => unknown): void => {
-    nextCallbackRef.current = callback;
-    setTimeout(nextCallbackRef.current, timeout);
+    setNextCallback({
+      timeout,
+      handler: callback,
+    });
   };
 
   const performEnter = (mounting: boolean): void => {
+    const appearing = parentGroup ? parentGroup.isMounting : mounting;
     const timeouts = getTimeouts(timeout);
-    const appearing = parentGroup?.isMounting
-      ? parentGroup.isMounting
-      : mounting;
     const enterTimeout = appearing ? timeouts.appear : timeouts.enter;
-
     if (!mounting && !enter) {
-      safeSetStatus(TransitionStatus.ENTERED, () => {
-        onEntered?.(false);
+      setStatus(TransitionStatus.ENTERED);
+      setNextCallback({
+        handler: () => {
+          transitionEndCallbacksRef.current.onEntered?.(false);
+        },
       });
       return;
     }
 
-    onEnter?.(appearing);
+    transitionEndCallbacksRef.current.onEnter?.(appearing);
 
-    safeSetStatus(TransitionStatus.ENTERING, () => {
-      onEntering?.(appearing);
-      onTransitionEnd(enterTimeout, () => {
-        onEntered?.(appearing);
-      });
+    setStatus(TransitionStatus.ENTERING);
+
+    setNextCallback({
+      handler: () => {
+        transitionEndCallbacksRef.current.onEntering?.(appearing);
+        onTransitionEnd(enterTimeout, () => {
+          setStatus(TransitionStatus.ENTERED);
+          setNextCallback({
+            handler: () => {
+              transitionEndCallbacksRef.current.onEntered?.(appearing);
+            },
+          });
+        });
+      },
     });
   };
 
   const performExit = (): void => {
     const timeouts = getTimeouts(timeout);
+
     if (!exit) {
-      safeSetStatus(TransitionStatus.EXITED, () => {
-        onExit?.();
+      setStatus(TransitionStatus.EXITED);
+      setNextCallback({
+        handler: () => {
+          transitionEndCallbacksRef.current.onExited?.();
+        },
       });
       return;
     }
 
-    safeSetStatus(TransitionStatus.EXITING, () => {
-      onExiting?.();
-
-      onTransitionEnd(timeouts.exit, () => {
-        safeSetStatus(TransitionStatus.EXITED, () => {
-          onExited?.();
+    transitionEndCallbacksRef.current.onExit?.();
+    setStatus(TransitionStatus.EXITING);
+    setNextCallback({
+      handler: () => {
+        transitionEndCallbacksRef.current.onExiting?.();
+        onTransitionEnd(timeouts.exit, () => {
+          setStatus(TransitionStatus.EXITED);
+          transitionEndCallbacksRef.current.onExited?.();
         });
-      });
+      },
     });
   };
 
@@ -161,7 +184,6 @@ export default function useTransition({
     nextStatus: TransitionStatus | null
   ): void => {
     if (nextStatus !== null) {
-      nextCallbackRef.current = null;
       if (nextStatus === TransitionStatus.ENTERING) {
         performEnter(mounting);
       } else {
@@ -172,33 +194,33 @@ export default function useTransition({
     }
   };
 
-  useNativeEffect(() => {
+  useMount(() => {
     updateStatus(true, appearStatusRef.current);
-  }, []);
+  });
 
-  useNativeEffect(() => {
+  const prevProps = usePrevious(props);
+  useUpdateEffect(() => {
+    if (prevProps === props) return;
     let nextStatus: TransitionStatus | null = null;
 
-    if (inStatus) {
-      if (inStatus) {
-        if (
-          status !== TransitionStatus.ENTERING &&
-          status !== TransitionStatus.ENTERED
-        ) {
-          nextStatus = TransitionStatus.ENTERING;
-        }
-      } else {
-        if (
-          status === TransitionStatus.ENTERING ||
-          status === TransitionStatus.ENTERED
-        ) {
-          nextStatus = TransitionStatus.EXITED;
-        }
-      }
+    if (
+      props.in &&
+      status !== TransitionStatus.ENTERING &&
+      status !== TransitionStatus.ENTERED
+    ) {
+      nextStatus = TransitionStatus.ENTERING;
+    }
+
+    if (
+      !props.in &&
+      (status === TransitionStatus.ENTERING ||
+        status === TransitionStatus.ENTERED)
+    ) {
+      nextStatus = TransitionStatus.EXITING;
     }
 
     updateStatus(false, nextStatus);
-  }, [inStatus, status]);
+  }, [props, prevProps, status, updateStatus]);
 
   return status;
 }
