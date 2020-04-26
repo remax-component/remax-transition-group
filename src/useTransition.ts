@@ -107,10 +107,16 @@ export default function useTransition(
 
     return initialStatus;
   });
+
+  const prevPropsRef = useRef<UseTransitionParams | null>(null);
+  const prevProps = prevPropsRef.current;
   const prevStatus = usePrevious(status);
 
-  if (inStatus && prevStatus === TransitionStatus.UNMOUNTED) {
-    setStatus(TransitionStatus.EXITED);
+  if (prevProps !== props) {
+    prevPropsRef.current = props;
+    if (inStatus && prevStatus === TransitionStatus.UNMOUNTED) {
+      setStatus(TransitionStatus.EXITED);
+    }
   }
 
   const onTransitionEnd = (timeout = 0, callback: () => unknown): void => {
@@ -198,9 +204,8 @@ export default function useTransition(
     updateStatus(true, appearStatusRef.current);
   });
 
-  const prevProps = usePrevious(props);
   useUpdateEffect(() => {
-    if (prevProps === props) return;
+    if (prevProps === props && status === prevStatus) return;
     let nextStatus: TransitionStatus | null = null;
 
     if (
@@ -220,7 +225,7 @@ export default function useTransition(
     }
 
     updateStatus(false, nextStatus);
-  }, [props, prevProps, status, updateStatus]);
+  }, [props, prevProps, status, updateStatus, status, prevStatus]);
 
   return status;
 }
