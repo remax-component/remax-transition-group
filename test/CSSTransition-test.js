@@ -169,6 +169,7 @@ describe("CSSTransition", () => {
         timeout: 10,
         classNames: "appear-test",
         in: true,
+        appear: true,
       };
       act(() => {
         wrapper = create(
