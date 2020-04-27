@@ -35,3 +35,16 @@ export interface UseTransitionParams {
   unmountOnExit?: boolean;
   mountOnEnter?: boolean;
 }
+
+export interface ObjectClassNames {
+  appear?: string;
+  appearActive?: string;
+  appearDone?: string;
+  enter?: string;
+  enterActive?: string;
+  enterDone?: string;
+  exit?: string;
+  exitActive?: string;
+  exitDone?: string;
+}
+export type ClassNames = string | ObjectClassNames;
