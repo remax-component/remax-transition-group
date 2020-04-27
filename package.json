@@ -9,8 +9,8 @@
   "scripts": {
     "build": "gulp build",
     "test": "jest",
-    "watch:component": "gulp watch",
-    "start": "run-p watch:*"
+    "watch": "gulp watch",
+    "prepublishOnly": "npm run build && npm test"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.9.5",
@@ -28,6 +28,7 @@
     "gulp-cli": "^2.2.0",
     "gulp-copy": "^4.0.1",
     "gulp-less": "^4.0.1",
+    "gulp-sourcemaps": "^2.6.5",
     "gulp-typescript": "^6.0.0-alpha.1",
     "husky": "^4.2.5",
     "jest": "25.3.0",
@@ -36,13 +37,16 @@
     "postcss": "^7.0.27",
     "prettier": "^2.0.4",
     "react": "^16.13.1",
-    "remax": "^2.0.0-alpha.4",
+    "react-test-renderer": "^16.13.1",
+    "remax": "^1.21.3",
     "typescript": "^3.8.3"
+  },
+  "peerDependencies": {
+    "remax": ">=1.19.0"
   },
   "dependencies": {
     "clsx": "^1.1.0",
     "lodash.omit": "^4.5.0",
-    "react-test-renderer": "^16.13.1",
     "react-use": "^14.1.1"
   },
   "husky": {
