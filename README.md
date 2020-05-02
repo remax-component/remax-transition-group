@@ -30,6 +30,19 @@ npm i @remax-component/transition-group
 | onEnter, onEntering, onEntered | `(isAppearing: boolean) => any`                               |        | 当 in 从`false`到`true`，或者设置了`appear`之后的回调。若`appear={true}`且在组件挂载的时期，则`isAppearing`为 true，其它情况下为`false`                                                                                                                                                |
 | onExit, onExiting, onExited    | `() => any`                                                   |        | `in`从`true`变为`false`时的回调                                                                                                                                                                                                                                                        |
 
+### `<Transition />`特有属性
+
+|名称|类型|默认值|描述|
+|children|`ReactElement|(status: TransitionStatus) => ReactElement`||**必填**，一个 renderProps，接收不同的 status 渲染不同内容|
+
+### `<CSSTransition />`特有的属性
+
+| 名称       | 类型                                                                                                                                                                                       | 默认值      | 描述                                                                                                                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| classNames | `string|{ appear?: string; appearActive?: string; appearDone?: string; enter?: string; enterActive?: string; enterDone?: string; exit?: string; exitActive?: string; exitDone?: string; }` | `''`        | transition 在不同状态下的 className，如果是`string`类型，则最后为`*-enter` `*-enter-active` `*-enter-done`, `*-exit` `*-exit-active`, `*-exit-done`, `*-appear`, `*-appear-active`, `*-appear-done` |
+| children   | `ReactElement`                                                                                                                                                                             | 无          | 请确保 children 可以利用`className`属性                                                                                                                                                             |
+| className  | `string|undefined`                                                                                                                                                                         | `undefined` | 额外的 className，会与 transition 的 className 一起传给 children                                                                                                                                    |
+
 ## TODO
 
 - TransitionGroup 的实现
