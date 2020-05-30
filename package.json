@@ -1,6 +1,6 @@
 {
   "name": "@remax-component/transition-group",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "react-transition-group for Remax",
   "main": "dist/index.js",
   "author": "IronLu233",
